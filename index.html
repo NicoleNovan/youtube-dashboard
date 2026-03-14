@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的YouTube频道监控</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1600px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 10px; color: #333; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .stat-number { font-size: 32px; font-weight: bold; color: #2563eb; margin-bottom: 5px; }
+    .stat-label { color: #666; font-size: 14px; }
+    .section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .section-title { font-size: 20px; margin-bottom: 20px; color: #333; border-bottom: 2px solid #2563eb; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .channel-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .channel-tab { padding: 10px 20px; border: 2px solid #e5e5e5; background: white; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .channel-tab:hover { background: #f8f9fa; }
+    .channel-tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .video-table { width: 100%; border-collapse: collapse; }
+    .video-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e5e5; position: sticky; top: 0; }
+    .video-table td { padding: 12px; border-bottom: 1px solid #e5e5e5; }
+    .video-table tr:hover { background: #f8f9fa; }
+    .video-title { font-weight: 500; color: #333; max-width: 400px; }
+    .video-title a { color: #2563eb; text-decoration: none; }
+    .video-title a:hover { text-decoration: underline; }
+    .type-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .type-short { background: #fef3c7; color: #92400e; }
+    .type-long { background: #dbeafe; color: #1e40af; }
+    .view-count { font-weight: 600; color: #2563eb; }
+    .sort-btn { background: none; border: none; cursor: pointer; color: #666; font-size: 12px; margin-left: 5px; }
+    .sort-btn:hover { color: #2563eb; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .modal.show { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; }
+    .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    .form-label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+    .form-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .form-buttons { display: flex; gap: 10px; margin-top: 20px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #e5e5e5; color: #333; }
+    .btn-secondary:hover { background: #d4d4d4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📺 我的YouTube频道监控</h1>
+    <div class="subtitle">数据更新时间: 2026/3/14 11:53:15</div>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-number">3</div>
+        <div class="stat-label">频道数量</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">44</div>
+        <div class="stat-label">视频总数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">20,733</div>
+        <div class="stat-label">总观看次数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">471</div>
+        <div class="stat-label">平均观看次数</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">
+        <span>📊 视频数据</span>
+        <button onclick="showAddChannelDialog()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">+ 新增频道</button>
+      </div>
+      
+      <div class="channel-tabs">
+        <button class="channel-tab active" onclick="switchChannel('all')">全部频道 (44)</button>
+        
+          <button class="channel-tab" onclick="switchChannel('德州扑克专业解说-zh')">德州扑克专业解说-zh (5)</button>
+        
+          <button class="channel-tab" onclick="switchChannel('链上深讨论')">链上深讨论 (28)</button>
+        
+          <button class="channel-tab" onclick="switchChannel('WSOP中文解说')">WSOP中文解说 (11)</button>
+        
+      </div>
+      
+      <div style="overflow-x: auto;">
+        <table class="video-table">
+          <thead>
+            <tr>
+              <th>频道</th>
+              <th>视频标题</th>
+              <th>类型</th>
+              <th>
+                发布时间
+                <button class="sort-btn" onclick="sortBy('date')">↕️</button>
+              </th>
+              <th>
+                观看次数
+                <button class="sort-btn" onclick="sortBy('views')">↕️</button>
+              </th>
+              <th>
+                点赞
+                <button class="sort-btn" onclick="sortBy('likes')">↕️</button>
+              </th>
+              <th>
+                评论
+                <button class="sort-btn" onclick="sortBy('comments')">↕️</button>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="videoTableBody">
+            
+                <tr data-channel="德州扑克专业解说-zh">
+                  <td><strong>德州扑克专业解说-zh</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=bhop9SYQqvQ" target="_blank">这手牌弃了还是跟？全桌都在等答案#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-13T01:40:25Z">2026/3/13</td>
+                  <td class="view-count" data-views="37">37</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="德州扑克专业解说-zh">
+                  <td><strong>德州扑克专业解说-zh</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=iTEhRSN8NW0" target="_blank">落后到绝望？五张牌决定$1,250,000归属#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-12T01:42:50Z">2026/3/12</td>
+                  <td class="view-count" data-views="878">878</td>
+                  <td data-likes="9">9</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="德州扑克专业解说-zh">
+                  <td><strong>德州扑克专业解说-zh</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=BIsOcAOa-ss" target="_blank">他拿着KK，却被对手三条街疯狂施压#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-11T01:40:54Z">2026/3/11</td>
+                  <td class="view-count" data-views="962">962</td>
+                  <td data-likes="3">3</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="德州扑克专业解说-zh">
+                  <td><strong>德州扑克专业解说-zh</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=SnhFyyId4zg" target="_blank">胜负只差一张牌#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-10T01:38:31Z">2026/3/10</td>
+                  <td class="view-count" data-views="5582">5,582</td>
+                  <td data-likes="58">58</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="德州扑克专业解说-zh">
+                  <td><strong>德州扑克专业解说-zh</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=M_Z0BYx5YMI" target="_blank">OMG！这手牌太离谱了#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-09T01:49:14Z">2026/3/9</td>
+                  <td class="view-count" data-views="1131">1,131</td>
+                  <td data-likes="19">19</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=Q-hV8V2QbgA" target="_blank">霍尔木兹要被布雷？油价冲上百美元，比特币跌破七万解读</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-13T03:46:42Z">2026/3/13</td>
+                  <td class="view-count" data-views="0">0</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=-KCj8DS2nMI" target="_blank">五千万USDT换来三点六万美元AAVE：巨鲸一单亏掉99.9%</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-13T03:00:06Z">2026/3/13</td>
+                  <td class="view-count" data-views="78">78</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="1">1</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=jvD029altNE" target="_blank">Aave上线一月，Mantle TVL破十亿美元：L二赛道要变天？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-12T04:20:38Z">2026/3/12</td>
+                  <td class="view-count" data-views="1">1</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=7MkjDzv7Pgc" target="_blank">CZ罕见回应：Binance 估值与加密市场高度相关，从不做空打压币价</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-12T04:01:12Z">2026/3/12</td>
+                  <td class="view-count" data-views="50">50</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=1H2dom8Jz-4" target="_blank">BSC 中文 Meme 币 “龙虾” 市值突破 1650 万美元，日内涨幅超 127%</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-11T02:35:28Z">2026/3/11</td>
+                  <td class="view-count" data-views="152">152</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=Wdzo-k9wWtY" target="_blank">油价暴涨三成，Hyperliquid石油永续一日爆量12亿美元</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-10T06:38:52Z">2026/3/10</td>
+                  <td class="view-count" data-views="0">0</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=wtnyXOVbtLc" target="_blank">战争要结束？纳斯达克联手Kraken：二零二七代币化股票要来了</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-10T03:13:42Z">2026/3/10</td>
+                  <td class="view-count" data-views="19">19</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=kWGZr0f1kJg" target="_blank">特朗普重写“门罗主义”：金融市场开始按地缘政治定价？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-09T03:21:44Z">2026/3/9</td>
+                  <td class="view-count" data-views="185">185</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=8Elo6gfhRTw" target="_blank">美国总债务占GDP七百二十倍？金价三倍背后的贬值信号</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-09T03:19:22Z">2026/3/9</td>
+                  <td class="view-count" data-views="0">0</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=sZ_NUmyzec4" target="_blank">当AI开始“建链”：最疯狂的以太坊L二会长什么样</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-08T13:30:15Z">2026/3/8</td>
+                  <td class="view-count" data-views="1">1</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=fLm7Zrd8o5A" target="_blank">难度仅涨零点四五％：算力横盘，七万美元为何站不稳？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-08T13:26:40Z">2026/3/8</td>
+                  <td class="view-count" data-views="730">730</td>
+                  <td data-likes="4">4</td>
+                  <td data-comments="3">3</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=UgL2uNm7IrE" target="_blank">比特币：牛市回归还是熊市陷阱？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-06T15:22:00Z">2026/3/6</td>
+                  <td class="view-count" data-views="762">762</td>
+                  <td data-likes="3">3</td>
+                  <td data-comments="1">1</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=PA6g-GEwVG4" target="_blank">绕过国会？特朗普点名银行：稳定币新秩序要来了</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-06T15:18:04Z">2026/3/6</td>
+                  <td class="view-count" data-views="156">156</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=8GzV2UpMXuk" target="_blank">灰度爆料：Solana稳定币月交易量六千五百亿美元，支付真起来了？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-05T08:46:44Z">2026/3/5</td>
+                  <td class="view-count" data-views="571">571</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=JYqYwEDifhk" target="_blank">灰度给出三大理由：为什么现在反而适合长期配置加密资产？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-03T09:31:47Z">2026/3/3</td>
+                  <td class="view-count" data-views="4">4</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=FPrHXXi4FDk" target="_blank">特朗普放话“巨浪将至”，纳斯达克推二元期权：预测市场要变天？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-03T08:27:46Z">2026/3/3</td>
+                  <td class="view-count" data-views="77">77</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=Mo08nm4aZtg" target="_blank">伊朗周末突发局势导致多数市场休市，Hyperliquid代币逆势上涨</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-02T10:38:43Z">2026/3/2</td>
+                  <td class="view-count" data-views="137">137</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=HsjyK_3h6-w" target="_blank">伊朗最高领袖遇害后，BTC亏损39%：还没到终极恐慌？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-02T04:31:26Z">2026/3/2</td>
+                  <td class="view-count" data-views="1046">1,046</td>
+                  <td data-likes="11">11</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=oiTxLIDv_Do" target="_blank">Vitalik放话：以太坊智能账户一年内上线，钱包要变“App”？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-02T04:13:45Z">2026/3/2</td>
+                  <td class="view-count" data-views="3">3</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=2IwsPehDwXE" target="_blank">伊朗77.8亿的加密“影子经济”</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-01T04:25:05Z">2026/3/1</td>
+                  <td class="view-count" data-views="780">780</td>
+                  <td data-likes="5">5</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=H6yvjedHb-w" target="_blank">伊朗加密影子经济77.8亿美元：革命卫队占流入过半</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-01T04:05:15Z">2026/3/1</td>
+                  <td class="view-count" data-views="4">4</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=rFo35nFPs5Y" target="_blank">2026监管大年：币安四分之一员工做合规，交易所下半场怎么打？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-01T02:41:43Z">2026/3/1</td>
+                  <td class="view-count" data-views="565">565</td>
+                  <td data-likes="3">3</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=Cq77jBwalUo" target="_blank">一千一百亿美元砸向OpenAI，以太坊扩容路线图曝光</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-28T08:15:05Z">2026/2/28</td>
+                  <td class="view-count" data-views="1">1</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=RWvg_WJ5zF8" target="_blank">两起起诉、四百亿美元崩盘：Jane Street到底做了什么？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-28T03:55:09Z">2026/2/28</td>
+                  <td class="view-count" data-views="28">28</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=ZxqPkMRgcR0" target="_blank">比特币卡在六万八：现货量创两年低，机构在等什么？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-28T03:44:55Z">2026/2/28</td>
+                  <td class="view-count" data-views="639">639</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=5uGlVbFlNhA" target="_blank">Strategy新融资引擎STRC：Benchmark喊到七百零五美元，凭什么？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-27T05:20:34Z">2026/2/27</td>
+                  <td class="view-count" data-views="19">19</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=oj1lxSYv78Y" target="_blank">读懂这份AgentFi全���报告，抓住下一个投资风口！</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-27T03:40:45Z">2026/2/27</td>
+                  <td class="view-count" data-views="1">1</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="链上深讨论">
+                  <td><strong>链上深讨论</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=ppvtM_FX3g4" target="_blank">“特朗普加密热潮”是暂时回调，还是叙事拐点？</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-26T06:07:42Z">2026/2/26</td>
+                  <td class="view-count" data-views="4">4</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=W9UhNtESVXE" target="_blank">$25K超级主赛Day4关键手：这一决定改变整场比赛#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-13T01:37:24Z">2026/3/13</td>
+                  <td class="view-count" data-views="805">805</td>
+                  <td data-likes="6">6</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=ddX6zW3lHhk" target="_blank">$25K超级主赛Day4关键手复盘#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-12T01:32:27Z">2026/3/12</td>
+                  <td class="view-count" data-views="754">754</td>
+                  <td data-likes="9">9</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=PhuQPisEgmw" target="_blank">$25K超级主赛Day3关键手！#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-11T01:27:55Z">2026/3/11</td>
+                  <td class="view-count" data-views="958">958</td>
+                  <td data-likes="7">7</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=gM3Np_MnbQ0" target="_blank">$25K超级主赛关键手复盘：范围与EV分析#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-10T01:17:58Z">2026/3/10</td>
+                  <td class="view-count" data-views="65">65</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=ixY6AVuuaBY" target="_blank">职业选手如何冲击金手链？#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-short">
+                      Short
+                    </span>
+                  </td>
+                  <td data-date="2026-03-09T01:38:07Z">2026/3/9</td>
+                  <td class="view-count" data-views="8">8</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=05aiXSrnLKw" target="_blank">为什么职业选手会这样下注？#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-06T01:26:36Z">2026/3/6</td>
+                  <td class="view-count" data-views="3">3</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=orh5hH_GpCs" target="_blank">筹码第一的真正打法，全过程拆解#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-short">
+                      Short
+                    </span>
+                  </td>
+                  <td data-date="2026-03-05T01:52:14Z">2026/3/5</td>
+                  <td class="view-count" data-views="5">5</td>
+                  <td data-likes="0">0</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=lpGco5Tkm_0" target="_blank">Shiina Okamoto冠军之路复盘#德州扑��� #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-short">
+                      Short
+                    </span>
+                  </td>
+                  <td data-date="2026-03-04T01:49:40Z">2026/3/4</td>
+                  <td class="view-count" data-views="9">9</td>
+                  <td data-likes="1">1</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=PN1N4zTqVHM" target="_blank">3…2…1…All-in！这一手直接改变战局#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-03-03T01:43:00Z">2026/3/3</td>
+                  <td class="view-count" data-views="2235">2,235</td>
+                  <td data-likes="17">17</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=ngqPXIunrHc" target="_blank">WSOP实战解析：Puny Aces在深筹码局面该如何打？#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-short">
+                      Short
+                    </span>
+                  </td>
+                  <td data-date="2026-03-02T02:43:08Z">2026/3/2</td>
+                  <td class="view-count" data-views="692">692</td>
+                  <td data-likes="6">6</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+                <tr data-channel="WSOP中文解说">
+                  <td><strong>WSOP中文解说</strong></td>
+                  <td class="video-title">
+                    <a href="https://www.youtube.com/watch?v=-PL2URVGqqo" target="_blank">没人看好的7 High，结果却……#德州扑克 #德州撲克 #WSOP  #poker_zh</a>
+                  </td>
+                  <td>
+                    <span class="type-badge type-long">
+                      长视频
+                    </span>
+                  </td>
+                  <td data-date="2026-02-28T07:30:00Z">2026/2/28</td>
+                  <td class="view-count" data-views="596">596</td>
+                  <td data-likes="6">6</td>
+                  <td data-comments="0">0</td>
+                </tr>
+              
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 新增频道对话框 -->
+  <div id="addChannelModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">新增YouTube频道</div>
+      <div class="form-group">
+        <label class="form-label">频道名称</label>
+        <input type="text" id="channelName" class="form-input" placeholder="例如：我的新频道">
+      </div>
+      <div class="form-group">
+        <label class="form-label">频道URL</label>
+        <input type="text" id="channelUrl" class="form-input" placeholder="https://www.youtube.com/@频道handle">
+      </div>
+      <div class="form-buttons">
+        <button class="btn btn-primary" onclick="addChannel()">添加</button>
+        <button class="btn btn-secondary" onclick="closeAddChannelDialog()">取消</button>
+      </div>
+      <div id="addChannelMessage" style="margin-top: 15px; padding: 10px; border-radius: 6px; display: none;"></div>
+    </div>
+  </div>
+  
+  <script>
+    let currentSort = { field: 'date', order: 'desc' };
+    
+    function switchChannel(channel) {
+      const rows = document.querySelectorAll('#videoTableBody tr');
+      const buttons = document.querySelectorAll('.channel-tab');
+      
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      rows.forEach(row => {
+        if (channel === 'all' || row.dataset.channel === channel) {
+          row.style.display = 'table-row';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    function sortBy(field) {
+      const tbody = document.getElementById('videoTableBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      
+      // 切换排序方向
+      if (currentSort.field === field) {
+        currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.field = field;
+        currentSort.order = 'desc';
+      }
+      
+      rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        if (field === 'date') {
+          aVal = new Date(a.querySelector('[data-date]').dataset.date);
+          bVal = new Date(b.querySelector('[data-date]').dataset.date);
+        } else if (field === 'views') {
+          aVal = parseInt(a.querySelector('[data-views]').dataset.views);
+          bVal = parseInt(b.querySelector('[data-views]').dataset.views);
+        } else if (field === 'likes') {
+          aVal = parseInt(a.querySelector('[data-likes]').dataset.likes);
+          bVal = parseInt(b.querySelector('[data-likes]').dataset.likes);
+        } else if (field === 'comments') {
+          aVal = parseInt(a.querySelector('[data-comments]').dataset.comments);
+          bVal = parseInt(b.querySelector('[data-comments]').dataset.comments);
+        }
+        
+        if (currentSort.order === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+      
+      rows.forEach(row => tbody.appendChild(row));
+    }
+    
+    // 页面加载完成后立即排序
+    document.addEventListener('DOMContentLoaded', function() {
+      // 默认按发布时间降序排序（最新在前）
+      const tbody = document.getElementById('videoTableBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      
+      rows.sort((a, b) => {
+        const aDate = new Date(a.querySelector('[data-date]').dataset.date);
+        const bDate = new Date(b.querySelector('[data-date]').dataset.date);
+        return bDate - aDate; // 降序
+      });
+      
+      rows.forEach(row => tbody.appendChild(row));
+    });
+    
+    // 新增频道对话框
+    function showAddChannelDialog() {
+      document.getElementById('addChannelModal').classList.add('show');
+      document.getElementById('channelName').value = '';
+      document.getElementById('channelUrl').value = '';
+      document.getElementById('addChannelMessage').style.display = 'none';
+    }
+    
+    function closeAddChannelDialog() {
+      document.getElementById('addChannelModal').classList.remove('show');
+    }
+    
+    function addChannel() {
+      const name = document.getElementById('channelName').value.trim();
+      const url = document.getElementById('channelUrl').value.trim();
+      const msgDiv = document.getElementById('addChannelMessage');
+      
+      if (!name || !url) {
+        msgDiv.textContent = '❌ 请填写完整信息';
+        msgDiv.style.background = '#fee2e2';
+        msgDiv.style.color = '#991b1b';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      if (!url.includes('youtube.com/@')) {
+        msgDiv.textContent = '❌ URL格式错误，应该是: https://www.youtube.com/@频道handle';
+        msgDiv.style.background = '#fee2e2';
+        msgDiv.style.color = '#991b1b';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      // 显示成功消息和命令
+      msgDiv.innerHTML = `✅ 频道信息已记录！<br><br>
+        <strong>下一步：</strong>在命令行运行以下命令添加频道：<br>
+        <code style="background: #f3f4f6; padding: 8px; display: block; margin-top: 8px; border-radius: 4px; font-size: 12px;">
+        node scripts/add-channel.js "${name}" "${url}"
+        </code><br>
+        然后运行刷新命令：<br>
+        <code style="background: #f3f4f6; padding: 8px; display: block; margin-top: 8px; border-radius: 4px; font-size: 12px;">
+        node scripts/refresh-my-channels.js
+        </code>`;
+      msgDiv.style.background = '#d1fae5';
+      msgDiv.style.color = '#065f46';
+      msgDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
